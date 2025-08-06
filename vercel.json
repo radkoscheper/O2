@@ -16,11 +16,11 @@
   "routes": [
     {
       "src": "/api/ai/batch-processing/status",
-      "dest": "/api/batch-processing-status.js"
+      "dest": "/api/ai-batch-status.js"
     },
     {
       "src": "/api/ai/batch-processing/start",
-      "dest": "/api/batch-processing-start.js"
+      "dest": "/api/ai-batch-start.js"
     },
     {
       "src": "/api/health",
