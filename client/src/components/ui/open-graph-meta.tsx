@@ -86,7 +86,7 @@ export default function OpenGraphMeta({
     // Add or update meta tags
     metaTags.forEach(({ property, name, content }) => {
       const attribute = property ? 'property' : 'name';
-      const value = property || name;
+      const value = property || name || '';
       
       let metaTag = document.querySelector(`meta[${attribute}="${value}"]`);
       

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -60,7 +60,7 @@ export type ChangePassword = z.infer<typeof changePasswordSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type User = typeof users.$inferSelect;
 
-// Destinations table
+// Destinations table with AI Enhancement support
 export const destinations = pgTable("destinations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -69,6 +69,15 @@ export const destinations = pgTable("destinations", {
   description: text("description").notNull(),
   image: text("image").notNull(),
   alt: text("alt").notNull(),
+  // AI Enhancement fields
+  aiImage: text("ai_image"),
+  aiProcessed: boolean("ai_processed").default(false),
+  aiSettings: jsonb("ai_settings").$type<{
+    upscale?: boolean;
+    aspectRatio?: string;
+    autoTags?: string[];
+    generativeFill?: boolean;
+  }>(),
   content: text("content").notNull(),
   link: text("link"), // Optional link URL for the destination
   featured: boolean("featured").default(false),
@@ -89,6 +98,9 @@ export const insertDestinationSchema = createInsertSchema(destinations).pick({
   description: true,
   image: true,
   alt: true,
+  aiImage: true,
+  aiProcessed: true,
+  aiSettings: true,
   content: true,
   link: true,
   featured: true,
@@ -104,7 +116,7 @@ export type InsertDestination = z.infer<typeof insertDestinationSchema>;
 export type UpdateDestination = z.infer<typeof updateDestinationSchema>;
 export type Destination = typeof destinations.$inferSelect;
 
-// Guides table
+// Guides table with AI Enhancement support
 export const guides = pgTable("guides", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -112,6 +124,15 @@ export const guides = pgTable("guides", {
   description: text("description").notNull(),
   image: text("image").notNull(),
   alt: text("alt").notNull(),
+  // AI Enhancement fields
+  aiImage: text("ai_image"),
+  aiProcessed: boolean("ai_processed").default(false),
+  aiSettings: jsonb("ai_settings").$type<{
+    upscale?: boolean;
+    aspectRatio?: string;
+    autoTags?: string[];
+    generativeFill?: boolean;
+  }>(),
   content: text("content").notNull(),
   link: text("link"), // Optional link URL for the guide
   featured: boolean("featured").default(false),
@@ -131,6 +152,9 @@ export const insertGuideSchema = createInsertSchema(guides).pick({
   description: true,
   image: true,
   alt: true,
+  aiImage: true,
+  aiProcessed: true,
+  aiSettings: true,
   content: true,
   link: true,
   featured: true,

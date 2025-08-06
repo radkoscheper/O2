@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Structured Data Test</title>
+</head>
+<body>
+    <h1>Testing Structured Data Component</h1>
+    <div id="test"></div>
+    
+    <script>
+        // Simulate our StructuredData component functionality
+        function addStructuredData() {
+            const structuredData = {
+                "@context": "https://schema.org",
+                "@type": "Website",
+                "name": "Ontdek Polen",
+                "description": "Test structured data implementation",
+                "url": window.location.href,
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": {
+                        "@type": "EntryPoint",
+                        "urlTemplate": window.location.origin + "/?search={search_term_string}"
+                    },
+                    "query-input": "required name=search_term_string"
+                }
+            };
+            
+            const script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.innerHTML = JSON.stringify(structuredData, null, 2);
+            document.head.appendChild(script);
+            
+            console.log('Structured data added:', JSON.stringify(structuredData, null, 2));
+            document.getElementById('test').innerHTML = '<p>Structured data toegevoegd! Check console en page source.</p>';
+        }
+        
+        // Add structured data after page loads
+        window.onload = addStructuredData;
+    </script>
+</body>
+</html>

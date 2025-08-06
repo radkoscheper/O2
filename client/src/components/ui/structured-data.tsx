@@ -30,6 +30,8 @@ export default function StructuredData({
   siteName = 'Ontdek Polen'
 }: StructuredDataProps) {
   useEffect(() => {
+    console.log('🔧 StructuredData component mounting...', { type, title, description });
+    console.log('🌍 Window location:', typeof window !== 'undefined' ? window.location.href : 'undefined');
     // Remove existing structured data
     const existingScript = document.querySelector('script[type="application/ld+json"]');
     if (existingScript) {

@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { useState, useEffect } from "react";
+import { initGA, trackWebVitals } from "../lib/analytics";
+import { useAnalytics } from "../hooks/use-analytics";
 import Home from "@/pages/home";
 import HomeTest from "@/pages/home-test";
 import Admin from "@/pages/admin";
@@ -14,12 +16,16 @@ import NotFound from "@/pages/not-found";
 import { CloudinaryDemo } from "@/pages/cloudinary-demo";
 import { HighlightsDemo } from "@/pages/highlights-demo";
 import { SidebarDemo } from "@/pages/sidebar-demo";
+import AITestPage from "@/pages/ai-test";
 
 function Router() {
   const [location] = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [loadingTitle, setLoadingTitle] = useState("Ontdek Polen");
   const [loadingSubtitle, setLoadingSubtitle] = useState("Laden van jouw Poolse avontuur...");
+  
+  // Track page views when routes change
+  useAnalytics();
 
   // Handle route-based loading
   useEffect(() => {
@@ -64,6 +70,7 @@ function Router() {
           <Route path="/cloudinary-demo" component={CloudinaryDemo} />
           <Route path="/highlights-demo" component={HighlightsDemo} />
           <Route path="/sidebar-demo" component={SidebarDemo} />
+          <Route path="/ai-test" component={AITestPage} />
           <Route path="/ontdek-meer" component={OntdekMeer} />
           <Route path="/:slug" component={Page} />
           <Route path="/destination/:slug" component={Page} />
@@ -75,6 +82,17 @@ function Router() {
 }
 
 function App() {
+  // Initialize Google Analytics when app loads
+  useEffect(() => {
+    // Verify required environment variable is present
+    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
+      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
+    } else {
+      initGA();
+      trackWebVitals();
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

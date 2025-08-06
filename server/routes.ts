@@ -13,6 +13,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { cloudinaryService } from "./cloudinary";
+import { processImageWithAI, batchProcessImages, type AIProcessingSettings } from "./ai-image-processor";
 
 declare module "express-session" {
   interface SessionData {
@@ -2012,6 +2013,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error serving favicon:', error);
       res.status(404).send('Favicon error');
+    }
+  });
+
+  // AI IMAGE PROCESSING API ROUTES
+  
+  // Process single image with AI
+  app.post("/api/images/process-ai", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || !user.canEditContent) {
+        return res.status(403).json({ message: "Geen toestemming om content te bewerken" });
+      }
+
+      const validation = z.object({
+        imageUrl: z.string().url(),
+        settings: z.object({
+          upscale: z.boolean().optional(),
+          aspectRatio: z.string().optional(),
+          generativeFill: z.boolean().optional()
+        }).optional()
+      }).safeParse(req.body);
+
+      if (!validation.success) {
+        return res.status(400).json({ message: "Invalid input", errors: validation.error.errors });
+      }
+
+      const { imageUrl, settings = {} } = validation.data;
+      
+      const result = await processImageWithAI(imageUrl, settings);
+      res.json(result);
+    } catch (error) {
+      console.error("Error processing image with AI:", error);
+      res.status(500).json({ message: "Failed to process image with AI" });
+    }
+  });
+
+  // Batch process images for destinations
+  app.post("/api/destinations/batch-process-ai", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || !user.canEditContent) {
+        return res.status(403).json({ message: "Geen toestemming om content te bewerken" });
+      }
+
+      // Get all destinations with Cloudinary images
+      const destinations = await storage.getAllDestinations();
+      const cloudinaryImages = destinations
+        .filter(dest => dest.image && dest.image.includes('cloudinary.com'))
+        .map(dest => ({ id: dest.id, url: dest.image!, type: 'destination' as const }));
+
+      if (cloudinaryImages.length === 0) {
+        return res.json({ message: "No Cloudinary images found to process", processed: [] });
+      }
+
+      const results = await batchProcessImages(cloudinaryImages);
+      
+      // Update database with AI results
+      for (const result of results) {
+        if (result.result && !result.error) {
+          await storage.updateDestination(result.id, {
+            aiImage: result.result.aiImageUrl,
+            aiProcessed: true,
+            aiSettings: result.result.settings
+          });
+        }
+      }
+
+      res.json({ 
+        message: `Processed ${results.filter(r => !r.error).length}/${results.length} images`,
+        results 
+      });
+    } catch (error) {
+      console.error("Error batch processing destinations:", error);
+      res.status(500).json({ message: "Failed to batch process destinations" });
+    }
+  });
+
+  // Get AI processing status
+  app.get("/api/images/ai-status", async (req, res) => {
+    try {
+      const destinations = await storage.getAllDestinations();
+      const guides = await storage.getAllGuides();
+      
+      const destStats = {
+        total: destinations.length,
+        cloudinary: destinations.filter(d => d.image && d.image.includes('cloudinary.com')).length,
+        processed: destinations.filter(d => d.aiProcessed).length,
+        hasAiImage: destinations.filter(d => d.aiImage).length
+      };
+      
+      const guideStats = {
+        total: guides.length,
+        cloudinary: guides.filter(g => g.image && g.image.includes('cloudinary.com')).length,
+        processed: guides.filter(g => g.aiProcessed).length,
+        hasAiImage: guides.filter(g => g.aiImage).length
+      };
+      
+      res.json({
+        destinations: destStats,
+        guides: guideStats,
+        summary: {
+          totalProcessable: destStats.cloudinary + guideStats.cloudinary,
+          totalProcessed: destStats.processed + guideStats.processed
+        }
+      });
+    } catch (error) {
+      console.error("Error getting AI status:", error);
+      res.status(500).json({ message: "Failed to get AI processing status" });
     }
   });
 

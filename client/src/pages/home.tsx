@@ -8,6 +8,7 @@ import { Link, useLocation } from "wouter";
 import TravelSlider from "@/components/ui/travel-slider";
 import { DestinationImage, ThumbnailImage, HeroImage } from "@/components/ui/optimized-image";
 import { HeroImageOptimized, DestinationImageOptimized } from "@/components/ui/optimized-image-enhanced";
+import AIEnhancedImage from "@/components/ui/ai-enhanced-image";
 import StructuredData from "@/components/ui/structured-data";
 import OpenGraphMeta from "@/components/ui/open-graph-meta";
 import { useSEO } from "@/hooks/use-seo";
@@ -314,7 +315,7 @@ export default function Home() {
         type="website"
         siteName={siteSettings?.siteName || "Ontdek Polen"}
       />
-      {/* Hero Section - Simplified for Debugging */}
+      {/* Hero Section - Restored Original Layout */}
       <section 
         className="relative text-white py-24 px-5 text-center min-h-screen flex items-center justify-center overflow-hidden"
         style={{
@@ -483,12 +484,39 @@ export default function Home() {
                 <Card 
                   className="group overflow-hidden bg-white shadow-luxury hover:shadow-luxury-xl transition-all duration-500 border-0 rounded-2xl mx-2"
                 >
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <DestinationImage
-                      src={destination.image || '/images/placeholder.jpg'}
-                      alt={destination.alt || destination.name || 'Bestemming'}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                    />
+                  <div className="aspect-[4/3] overflow-hidden relative">
+
+                    {/* Gebruik AI Enhanced voor Cloudinary images, normale voor andere */}
+                    {destination.image && destination.image.includes('cloudinary.com') ? (
+                      <AIEnhancedImage
+                        src={destination.image}
+                        alt={destination.alt || destination.name || 'Bestemming'}
+                        aiPreset="auto"
+                        upscale={true}
+                        aspectRatio="4:3"
+                        autoTag={true}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                        onAIProcessed={(tags, categories) => {
+                          console.log(`🏷️ AI tags voor ${destination.name}:`, tags);
+                        }}
+                      />
+                    ) : (
+                      <DestinationImage
+                        src={destination.image || '/images/placeholder.jpg'}
+                        alt={destination.alt || destination.name || 'Bestemming'}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                      />
+                    )}
+                    
+                    {/* AI Enhancement Indicator - only for Cloudinary images */}
+                    {destination.image && destination.image.includes('cloudinary.com') && (
+                      <div className="absolute top-2 right-2">
+                        <div className="bg-green-500 bg-opacity-90 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-md">
+                          <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                          AI
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="p-8">
                     <h3 className="font-playfair font-bold text-2xl text-navy-dark mb-3 leading-tight">
