@@ -3329,8 +3329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         idleTimeout: parseInt(idleTimeout),
         region,
         projectId,
-        isActive: Boolean(status),
-        updatedAt: new Date()
+        isActive: Boolean(status)
       });
 
       res.json({
