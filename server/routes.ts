@@ -1421,8 +1421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           seoData = {
             ...seoData,
             title: `${page.title} - Ontdek Polen`,
-            description: page.description || `Ontdek ${page.title} in Polen. Complete reisgids met tips en informatie voor jouw bezoek aan deze prachtige bestemming.`,
-            image: page.image || seoData.defaultImage,
+            description: page.metaDescription || `Ontdek ${page.title} in Polen. Complete reisgids met tips en informatie voor jouw bezoek aan deze prachtige bestemming.`,
+            image: page.headerImage || seoData.defaultImage,
             url: `https://o2-phi.vercel.app/${cleanPath}`,
             type: 'website',
             keywords: `${page.title}, Polen, reizen, bestemming`,
@@ -2121,6 +2121,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting AI status:", error);
       res.status(500).json({ message: "Failed to get AI processing status" });
+    }
+  });
+
+  // AI Pre-Processing Admin Routes for the Control Center
+  
+  // Get batch processing status for admin interface
+  app.get("/api/ai/batch-processing/status", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const destinations = await storage.getAllDestinations();
+      const guides = await storage.getAllGuides();
+      
+      // Count all images (Cloudinary and local)
+      const allImages = [
+        ...destinations.filter(d => d.image),
+        ...guides.filter(g => g.image)
+      ];
+      
+      const cloudinaryImages = allImages.filter(item => item.image && item.image.includes('cloudinary.com'));
+      const processedImages = [
+        ...destinations.filter(d => d.aiProcessed || d.aiImage),
+        ...guides.filter(g => g.aiProcessed || g.aiImage)
+      ];
+      
+      res.json({
+        total: allImages.length,
+        cloudinary: cloudinaryImages.length,
+        processed: processedImages.length,
+        pending: allImages.length - processedImages.length,
+        destinations: {
+          total: destinations.length,
+          processed: destinations.filter(d => d.aiProcessed || d.aiImage).length
+        },
+        guides: {
+          total: guides.length,
+          processed: guides.filter(g => g.aiProcessed || g.aiImage).length
+        }
+      });
+    } catch (error) {
+      console.error("Error getting batch processing status:", error);
+      res.status(500).json({ message: "Failed to get batch processing status" });
+    }
+  });
+
+  // Start batch processing for all images
+  app.post("/api/ai/batch-processing/start", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const startTime = Date.now();
+      let processedCount = 0;
+      let errorCount = 0;
+      const errors: any[] = [];
+
+      // Get all destinations and guides with Cloudinary images
+      const destinations = await storage.getAllDestinations();
+      const guides = await storage.getAllGuides();
+      
+      const cloudinaryDestinations = destinations.filter(dest => 
+        dest.image && 
+        dest.image.includes('cloudinary.com') && 
+        !dest.aiProcessed
+      );
+      
+      const cloudinaryGuides = guides.filter(guide => 
+        guide.image && 
+        guide.image.includes('cloudinary.com') && 
+        !guide.aiProcessed
+      );
+
+      // Process destinations
+      for (const destination of cloudinaryDestinations) {
+        try {
+          const result = await processImageWithAI(destination.image!, {
+            upscale: true,
+            aspectRatio: '4:3',
+            generativeFill: true
+          });
+          
+          if (result.aiImageUrl) {
+            await storage.updateDestination(destination.id, {
+              aiImage: result.aiImageUrl,
+              aiProcessed: true,
+              aiSettings: result.settings
+            });
+            processedCount++;
+          }
+        } catch (error) {
+          console.error(`Error processing destination ${destination.id}:`, error);
+          errors.push({ type: 'destination', id: destination.id, error: error instanceof Error ? error.message : 'Unknown error' });
+          errorCount++;
+        }
+      }
+
+      // Process guides
+      for (const guide of cloudinaryGuides) {
+        try {
+          const result = await processImageWithAI(guide.image!, {
+            upscale: true,
+            aspectRatio: '4:3',
+            generativeFill: true
+          });
+          
+          if (result.aiImageUrl) {
+            await storage.updateGuide(guide.id, {
+              aiImage: result.aiImageUrl,
+              aiProcessed: true,
+              aiSettings: result.settings
+            });
+            processedCount++;
+          }
+        } catch (error) {
+          console.error(`Error processing guide ${guide.id}:`, error);
+          errors.push({ type: 'guide', id: guide.id, error: error instanceof Error ? error.message : 'Unknown error' });
+          errorCount++;
+        }
+      }
+
+      const totalTime = Date.now() - startTime;
+
+      res.json({
+        processed: processedCount,
+        errors: errorCount,
+        totalTime,
+        message: `AI batch processing completed: ${processedCount} images processed, ${errorCount} errors`,
+        errorDetails: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error("Error starting batch processing:", error);
+      res.status(500).json({ message: "Failed to start batch processing" });
     }
   });
 
@@ -3517,9 +3654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         connectionTimeout: parseInt(connectionTimeout),
         idleTimeout: parseInt(idleTimeout),
         region,
-        projectId,
-        status,
-        updatedAt: new Date()
+        projectId
       });
 
       res.json({
