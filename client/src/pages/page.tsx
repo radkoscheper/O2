@@ -8,6 +8,7 @@ import { Search, Settings, ArrowLeft, MapPin, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import TravelSlider from "@/components/ui/travel-slider";
 import StructuredData from "@/components/ui/structured-data";
+import OpenGraphMeta from "@/components/ui/open-graph-meta";
 import type { SiteSettings, SearchConfig } from "@shared/schema";
 
 // Activities section component
@@ -411,6 +412,18 @@ export default function Page() {
         datePublished={page.createdAt}
         dateModified={page.updatedAt}
         siteName={siteSettings?.siteName || "Ontdek Polen"}
+      />
+      
+      {/* Open Graph Meta Tags for Social Media */}
+      <OpenGraphMeta
+        title={page.metaTitle || page.title}
+        description={page.metaDescription || `Ontdek ${page.title} in Polen - Jouw complete gids voor deze bestemming`}
+        image={page.headerImage || (siteSettings?.socialMediaImage || (typeof window !== 'undefined' ? `${window.location.origin}/images/og-default.jpg` : ''))}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        type={page.template === 'destination' ? 'website' : 'article'}
+        siteName={siteSettings?.siteName || "Ontdek Polen"}
+        publishedTime={page.createdAt}
+        modifiedTime={page.updatedAt}
       />
       
       {/* Hero Section - WebsiteBuilder Design */}

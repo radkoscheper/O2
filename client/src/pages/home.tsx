@@ -8,6 +8,7 @@ import { Link, useLocation } from "wouter";
 import TravelSlider from "@/components/ui/travel-slider";
 import { DestinationImage, ThumbnailImage, HeroImage } from "@/components/ui/optimized-image";
 import StructuredData from "@/components/ui/structured-data";
+import OpenGraphMeta from "@/components/ui/open-graph-meta";
 import type { SiteSettings, SearchConfig, SelectMotivation, Activity } from "@shared/schema";
 
 export default function Home() {
@@ -287,6 +288,16 @@ export default function Home() {
         url={typeof window !== 'undefined' ? window.location.href : ''}
         image={siteSettings?.socialMediaImage || (typeof window !== 'undefined' ? `${window.location.origin}/images/og-poland-travel.jpg` : '')}
         keywords={siteSettings?.metaKeywords || "Polen, reizen, bestemmingen, Krakow, Warschau, Gdansk, reistips"}
+        siteName={siteSettings?.siteName || "Ontdek Polen"}
+      />
+      
+      {/* Open Graph Meta Tags for Social Media */}
+      <OpenGraphMeta
+        title={siteSettings?.siteName || "Ontdek Polen"}
+        description={siteSettings?.siteDescription || "Jouw gids voor het ontdekken van de mooiste plekken in Polen. Bezoek historische steden, nationale parken en verborgen parels van Midden-Europa."}
+        image={siteSettings?.socialMediaImage || (typeof window !== 'undefined' ? `${window.location.origin}/images/og-poland-travel.jpg` : '')}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        type="website"
         siteName={siteSettings?.siteName || "Ontdek Polen"}
       />
       {/* Hero Section - WebsiteBuilder Design */}
