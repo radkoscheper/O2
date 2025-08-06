@@ -11,9 +11,7 @@ import {
   insertUserSchema, 
   updateUserSchema, 
   changePasswordSchema, 
-  resetPasswordSchema,
-  performanceSettings,
-  performanceMetrics
+  resetPasswordSchema
 } from "@shared/schema";
 import multer from "multer";
 import path from "path";
@@ -3440,177 +3438,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =============================================================================
-  // PERFORMANCE SETTINGS API ROUTES
+  // PERFORMANCE ROUTES TEMPORARILY DISABLED
   // =============================================================================
-
-  // Get current performance settings
-  app.get("/api/performance-settings", async (req, res) => {
-    try {
-      const [settings] = await db.select().from(performanceSettings).limit(1);
-      
-      if (!settings) {
-        // Create default settings if none exist
-        const [defaultSettings] = await db.insert(performanceSettings).values({
-          createdBy: 1 // Default admin user
-        }).returning();
-        return res.json(defaultSettings);
-      }
-      
-      res.json(settings);
-    } catch (error) {
-      console.error("Error fetching performance settings:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Update performance settings
-  app.patch("/api/performance-settings", requireAuth, async (req, res) => {
-    try {
-      const user = await storage.getUser(req.session.userId!);
-      if (!user || user.role !== "admin") {
-        return res.status(403).json({ message: "Alleen admins kunnen performance instellingen wijzigen" });
-      }
-
-      // Get current settings
-      const [currentSettings] = await db.select().from(performanceSettings).limit(1);
-      
-      if (!currentSettings) {
-        // Create new settings if none exist
-        const [newSettings] = await db.insert(performanceSettings).values({
-          ...req.body,
-          createdBy: user.id
-        }).returning();
-        return res.json(newSettings);
-      }
-
-      // Update existing settings
-      const [updatedSettings] = await db
-        .update(performanceSettings)
-        .set({
-          ...req.body,
-          updatedAt: new Date()
-        })
-        .where(eq(performanceSettings.id, currentSettings.id))
-        .returning();
-
-      res.json(updatedSettings);
-    } catch (error) {
-      console.error("Error updating performance settings:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // =============================================================================
-  // PERFORMANCE METRICS API ROUTES
-  // =============================================================================
-
-  // Get performance metrics history
-  app.get("/api/performance-metrics", async (req, res) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 50;
-      const offset = parseInt(req.query.offset as string) || 0;
-
-      const metrics = await db
-        .select()
-        .from(performanceMetrics)
-        .orderBy(desc(performanceMetrics.createdAt))
-        .limit(limit)
-        .offset(offset);
-
-      res.json(metrics);
-    } catch (error) {
-      console.error("Error fetching performance metrics:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Record new performance metrics
-  app.post("/api/performance-metrics", requireAuth, async (req, res) => {
-    try {
-      const user = await storage.getUser(req.session.userId!);
-      if (!user) {
-        return res.status(403).json({ message: "Unauthorized" });
-      }
-
-      const validation = z.object({
-        url: z.string().url(),
-        pagespeedScore: z.number().min(0).max(100).optional(),
-        loadTime: z.number().min(0).optional(),
-        firstContentfulPaint: z.number().min(0).optional(),
-        largestContentfulPaint: z.number().min(0).optional(),
-        cumulativeLayoutShift: z.string().optional(),
-        firstInputDelay: z.number().min(0).optional(),
-        testType: z.enum(['manual', 'automated', 'scheduled']).default('manual'),
-        userAgent: z.string().optional(),
-        notes: z.string().optional(),
-      }).safeParse(req.body);
-
-      if (!validation.success) {
-        return res.status(400).json({ message: "Invalid input", errors: validation.error.errors });
-      }
-
-      const [metrics] = await db.insert(performanceMetrics).values({
-        ...validation.data,
-        testedBy: user.id
-      }).returning();
-
-      res.json(metrics);
-    } catch (error) {
-      console.error("Error recording performance metrics:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
-
-  // Get performance summary/dashboard data
-  app.get("/api/performance-summary", async (req, res) => {
-    try {
-      // Get latest metrics
-      const [latestMetrics] = await db
-        .select()
-        .from(performanceMetrics)
-        .orderBy(desc(performanceMetrics.createdAt))
-        .limit(1);
-
-      // Get average performance over last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const recentMetrics = await db
-        .select()
-        .from(performanceMetrics)
-        .where(gte(performanceMetrics.createdAt, thirtyDaysAgo));
-
-      // Calculate averages
-      const avgLoadTime = recentMetrics.length > 0 
-        ? Math.round(recentMetrics.reduce((sum, m) => sum + (m.loadTime || 0), 0) / recentMetrics.length)
-        : null;
-
-      const avgPagespeedScore = recentMetrics.length > 0
-        ? Math.round(recentMetrics.reduce((sum, m) => sum + (m.pagespeedScore || 0), 0) / recentMetrics.filter(m => m.pagespeedScore).length)
-        : null;
-
-      // Get current performance settings
-      const [settings] = await db.select().from(performanceSettings).limit(1);
-
-      res.json({
-        latest: latestMetrics,
-        averages: {
-          loadTime: avgLoadTime,
-          pagespeedScore: avgPagespeedScore,
-          totalTests: recentMetrics.length
-        },
-        settings: settings,
-        trends: {
-          improving: latestMetrics && recentMetrics.length > 1 
-            ? (latestMetrics.loadTime || 0) < (avgLoadTime || 0)
-            : null
-        }
-      });
-    } catch (error) {
-      console.error("Error fetching performance summary:", error);
-      res.status(500).json({ message: "Server error" });
-    }
-  });
+  
+  // Performance routes removed to fix Vercel deployment issue
+  // Will be re-enabled once Vercel cache is cleared
 
   return httpServer;
 }
