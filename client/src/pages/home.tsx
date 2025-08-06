@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import TravelSlider from "@/components/ui/travel-slider";
 import { DestinationImage, ThumbnailImage, HeroImage } from "@/components/ui/optimized-image";
+import StructuredData from "@/components/ui/structured-data";
 import type { SiteSettings, SearchConfig, SelectMotivation, Activity } from "@shared/schema";
 
 export default function Home() {
@@ -278,6 +279,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#f8f6f1" }}>
+      {/* Structured Data for Homepage */}
+      <StructuredData
+        type="Website"
+        title={siteSettings?.siteName || "Ontdek Polen"}
+        description={siteSettings?.siteDescription || "Jouw gids voor het ontdekken van de mooiste plekken in Polen. Bezoek historische steden, nationale parken en verborgen parels van Midden-Europa."}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        image={siteSettings?.socialMediaImage || (typeof window !== 'undefined' ? `${window.location.origin}/images/og-poland-travel.jpg` : '')}
+        keywords={siteSettings?.metaKeywords || "Polen, reizen, bestemmingen, Krakow, Warschau, Gdansk, reistips"}
+        siteName={siteSettings?.siteName || "Ontdek Polen"}
+      />
       {/* Hero Section - WebsiteBuilder Design */}
       <section 
         className="relative bg-cover bg-center text-white py-24 px-5 text-center min-h-screen flex items-center justify-center"

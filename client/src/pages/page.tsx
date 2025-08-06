@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Search, Settings, ArrowLeft, MapPin, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import TravelSlider from "@/components/ui/travel-slider";
+import StructuredData from "@/components/ui/structured-data";
 import type { SiteSettings, SearchConfig } from "@shared/schema";
 
 // Activities section component
@@ -397,6 +398,21 @@ export default function Page() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#f8f6f1" }}>
+      {/* Structured Data for Page */}
+      <StructuredData
+        type={page.template === 'destination' ? 'TouristDestination' : 'Article'}
+        title={page.metaTitle || page.title}
+        description={page.metaDescription || `Ontdek ${page.title} in Polen`}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        image={page.headerImage || (siteSettings?.socialMediaImage || (typeof window !== 'undefined' ? `${window.location.origin}/images/og-default.jpg` : ''))}
+        location={page.title}
+        content={page.content}
+        keywords={page.metaKeywords}
+        datePublished={page.createdAt}
+        dateModified={page.updatedAt}
+        siteName={siteSettings?.siteName || "Ontdek Polen"}
+      />
+      
       {/* Hero Section - WebsiteBuilder Design */}
       <section 
         className="relative bg-cover bg-center text-white py-24 px-5 text-center min-h-screen flex items-center justify-center"
