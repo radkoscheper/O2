@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Search, Settings, ArrowLeft, MapPin, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import TravelSlider from "@/components/ui/travel-slider";
-import StructuredData from "@/components/ui/seo-structured-data";
 import type { SiteSettings, SearchConfig } from "@shared/schema";
 
 // Activities section component
@@ -67,8 +66,6 @@ function ActivitiesSection({ pageTitle, setSelectedActivityId }: { pageTitle?: s
                   src={activity.image}
                   alt={activity.alt || activity.name}
                   className="w-full h-40 object-cover"
-                  loading="lazy"
-                  decoding="async"
                   onError={(e) => {
                     e.currentTarget.src = '/images/activities/placeholder.svg';
                   }}
@@ -626,8 +623,6 @@ export default function Page() {
                   src={selectedActivity.image}
                   alt={selectedActivity.alt || selectedActivity.name}
                   className="w-full h-64 object-cover rounded-lg mb-6"
-                  loading="lazy"
-                  decoding="async"
                   onError={(e) => {
                     e.currentTarget.src = '/images/activities/placeholder.svg';
                   }}
@@ -722,8 +717,6 @@ export default function Page() {
                       src={activity.image || '/images/activities/placeholder.svg'}
                       alt={activity.alt || activity.name}
                       className="w-16 h-16 mx-auto mb-3 object-cover rounded-lg"
-                      loading="lazy"
-                      decoding="async"
                       onError={(e) => {
                         e.currentTarget.src = '/images/activities/placeholder.svg';
                       }}
@@ -799,21 +792,6 @@ export default function Page() {
           &copy; 2025 {(siteSettings as any)?.siteName || "Ontdek Polen"}. Alle rechten voorbehouden.
         </p>
       </footer>
-      
-      {/* SEO Structured Data */}
-      {page && (
-        <StructuredData 
-          type="destination" 
-          data={{
-            title: page.title,
-            description: page.content,
-            metaDescription: page.metaDescription,
-            slug: slug,
-            headerImage: page.headerImage,
-            updatedAt: page.updatedAt
-          }} 
-        />
-      )}
     </div>
   );
 }

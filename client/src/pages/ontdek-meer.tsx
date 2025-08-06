@@ -241,8 +241,6 @@ export default function OntdekMeer() {
                   src={destination.image}
                   alt={destination.alt}
                   className="w-full h-40 object-cover"
-                  loading="lazy"
-                  decoding="async"
                 />
                 <div className="p-4 font-bold font-playfair text-gray-900">
                   {destination.name}

@@ -14,7 +14,6 @@ import NotFound from "@/pages/not-found";
 import { CloudinaryDemo } from "@/pages/cloudinary-demo";
 import { HighlightsDemo } from "@/pages/highlights-demo";
 import { SidebarDemo } from "@/pages/sidebar-demo";
-import AdminPerformance from "@/pages/admin-performance";
 
 function Router() {
   const [location] = useLocation();
@@ -65,7 +64,6 @@ function Router() {
           <Route path="/cloudinary-demo" component={CloudinaryDemo} />
           <Route path="/highlights-demo" component={HighlightsDemo} />
           <Route path="/sidebar-demo" component={SidebarDemo} />
-          <Route path="/admin-performance" component={AdminPerformance} />
           <Route path="/ontdek-meer" component={OntdekMeer} />
           <Route path="/:slug" component={Page} />
           <Route path="/destination/:slug" component={Page} />

@@ -2,17 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db, pool } from "./db";
-import { sql, eq, desc, gte } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { z } from "zod";
-import { 
-  insertUserSchema, 
-  updateUserSchema, 
-  changePasswordSchema, 
-  resetPasswordSchema
-} from "@shared/schema";
+import { insertUserSchema, updateUserSchema, changePasswordSchema, resetPasswordSchema } from "@shared/schema";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -3329,7 +3324,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         idleTimeout: parseInt(idleTimeout),
         region,
         projectId,
-        isActive: Boolean(status)
+        status,
+        updatedAt: new Date()
       });
 
       res.json({
@@ -3435,13 +3431,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
-  // =============================================================================
-  // PERFORMANCE ROUTES TEMPORARILY DISABLED
-  // =============================================================================
-  
-  // Performance routes removed to fix Vercel deployment issue
-  // Will be re-enabled once Vercel cache is cleared
 
   return httpServer;
 }

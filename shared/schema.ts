@@ -485,6 +485,3 @@ export const updateMotivationImageLocationSchema = insertMotivationImageLocation
 export type InsertMotivationImageLocation = z.infer<typeof insertMotivationImageLocationSchema>;
 export type UpdateMotivationImageLocation = z.infer<typeof updateMotivationImageLocationSchema>;
 export type SelectMotivationImageLocation = typeof motivationImageLocations.$inferSelect;
-
-// Performance tables temporarily removed to restore original working state
-// Will be re-added once core functionality is stable
