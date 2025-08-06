@@ -7,19 +7,27 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import TravelSlider from "@/components/ui/travel-slider";
 import { DestinationImage, ThumbnailImage, HeroImage } from "@/components/ui/optimized-image";
+import { HeroImageOptimized, DestinationImageOptimized } from "@/components/ui/optimized-image-enhanced";
 import StructuredData from "@/components/ui/structured-data";
 import OpenGraphMeta from "@/components/ui/open-graph-meta";
 import { useSEO } from "@/hooks/use-seo";
+import { usePerformanceMonitoring, useConnectionMonitoring } from "@/hooks/use-performance";
+import { usePerformanceOptimizations } from "@/hooks/use-performance-optimization";
+import { trackSearch, trackHomepageInteraction, trackDestinationView, trackGuideView } from "../../lib/analytics";
 import type { SiteSettings, SearchConfig, SelectMotivation, Activity } from "@shared/schema";
 
 export default function Home() {
-  // Dynamic SEO updates
-  useSEO();
   const [location] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  
+  // Hooks must be called in consistent order
+  useSEO();
+  usePerformanceMonitoring();
+  useConnectionMonitoring();
+  usePerformanceOptimizations();
   
   // Close search handler that preserves ability to re-search
   const closeSearch = () => {
@@ -237,6 +245,9 @@ export default function Home() {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     
+    // Track search analytics
+    trackSearch(searchQuery, 'homepage');
+    
     console.log('=== SEARCH DEBUG ===');
     console.log('Starting search for:', searchQuery);
     console.log('Current showSearchResults:', showSearchResults);
@@ -303,21 +314,22 @@ export default function Home() {
         type="website"
         siteName={siteSettings?.siteName || "Ontdek Polen"}
       />
-      {/* Hero Section - WebsiteBuilder Design */}
+      {/* Hero Section - Simplified for Debugging */}
       <section 
-        className="relative bg-cover bg-center text-white py-24 px-5 text-center min-h-screen flex items-center justify-center"
+        className="relative text-white py-24 px-5 text-center min-h-screen flex items-center justify-center overflow-hidden"
         style={{
           backgroundImage: siteSettings?.backgroundImage 
             ? `url('${siteSettings.backgroundImage}')` 
-            : "url('/images/header.jpg')",
+            : "url('/images/backgrounds/header.jpg')",
           backgroundSize: "cover",
-          backgroundPosition: "center"
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
         }}
       >
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-dark/40 via-navy-dark/20 to-navy-dark/60"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-navy-dark/40 via-navy-dark/20 to-navy-dark/60 z-10"></div>
         
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
+        <div className="relative z-20 max-w-4xl mx-auto text-center">
           <h1 className="text-5xl md:text-7xl font-playfair font-bold mb-6 text-white drop-shadow-2xl tracking-wide leading-tight">
             {siteSettings?.siteName || "Ontdek Polen"}
           </h1>
