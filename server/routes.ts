@@ -3331,7 +3331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         idleTimeout: parseInt(idleTimeout),
         region,
         projectId,
-        status,
+        isActive: Boolean(status),
         updatedAt: new Date()
       });
 
@@ -3602,7 +3602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         settings: settings,
         trends: {
           improving: latestMetrics && recentMetrics.length > 1 
-            ? (latestMetrics.loadTime || 0) < avgLoadTime
+            ? (latestMetrics.loadTime || 0) < (avgLoadTime || 0)
             : null
         }
       });
