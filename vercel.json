@@ -2,14 +2,8 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "server/**",
-          "shared/**"
-        ]
-      }
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     },
     {
       "src": "client/**",
@@ -21,6 +15,18 @@
   ],
   "routes": [
     {
+      "src": "/api/ai/batch-processing/status",
+      "dest": "/api/ai/batch-processing/status.js"
+    },
+    {
+      "src": "/api/ai/batch-processing/start",
+      "dest": "/api/ai/batch-processing/start.js"
+    },
+    {
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/index.js"
     },
@@ -30,7 +36,7 @@
     }
   ],
   "functions": {
-    "api/index.js": {
+    "api/**/*.js": {
       "maxDuration": 30
     }
   },
