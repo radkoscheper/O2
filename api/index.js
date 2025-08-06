@@ -68,6 +68,8 @@ module.exports = async (req, res) => {
     // Extract the API path (remove /api prefix)
     const apiPath = url.replace('/api', '') || '/';
     
+    console.log('API Request:', { method, url, apiPath });
+    
     // Route handling
     if (apiPath === '/ai/batch-processing/status' && method === 'GET') {
       const status = await getAIBatchStatus();
