@@ -486,8 +486,16 @@ export default function Home() {
                 >
                   <div className="aspect-[4/3] overflow-hidden relative">
 
-                    {/* Gebruik AI Enhanced voor Cloudinary images, normale voor andere */}
-                    {destination.image && destination.image.includes('cloudinary.com') ? (
+                    {/* FASE 4: Gebruik pre-processed AI images als beschikbaar, anders runtime AI */}
+                    {destination.aiImage ? (
+                      // Pre-processed AI URL - instant loading (0ms)
+                      <DestinationImage
+                        src={destination.aiImage}
+                        alt={destination.alt || destination.name || 'Bestemming'}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                      />
+                    ) : destination.image && destination.image.includes('cloudinary.com') ? (
+                      // Runtime AI processing - fallback for non-processed images
                       <AIEnhancedImage
                         src={destination.image}
                         alt={destination.alt || destination.name || 'Bestemming'}
@@ -501,6 +509,7 @@ export default function Home() {
                         }}
                       />
                     ) : (
+                      // Regular image for non-Cloudinary sources
                       <DestinationImage
                         src={destination.image || '/images/placeholder.jpg'}
                         alt={destination.alt || destination.name || 'Bestemming'}
@@ -508,8 +517,17 @@ export default function Home() {
                       />
                     )}
                     
-                    {/* AI Enhancement Indicator - only for Cloudinary images */}
-                    {destination.image && destination.image.includes('cloudinary.com') && (
+                    {/* AI Enhancement Indicator */}
+                    {destination.aiImage ? (
+                      // Pre-processed AI indicator (best performance)
+                      <div className="absolute top-2 right-2">
+                        <div className="bg-blue-500 bg-opacity-95 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-md">
+                          <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+                          AI Pro
+                        </div>
+                      </div>
+                    ) : destination.image && destination.image.includes('cloudinary.com') && (
+                      // Runtime AI indicator (fallback)
                       <div className="absolute top-2 right-2">
                         <div className="bg-green-500 bg-opacity-90 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-md">
                           <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
