@@ -1309,6 +1309,10 @@ export default function Admin() {
                   <Server className="h-4 w-4" />
                   Deployment & Platform
                 </TabsTrigger>
+                <TabsTrigger value="performance" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Performance Settings
+                </TabsTrigger>
               </>
             )}
 
@@ -3188,7 +3192,7 @@ export default function Admin() {
                       </div>
                       
                       <div className="flex items-center gap-3">
-                        <Database className="h-5 w-5 text-orange-500" />
+                        <Database className="h-5 w-5 text-green-500" />
                         <div>
                           <p className="text-sm font-medium">Storage</p>
                           <p className="text-lg font-semibold">{databaseStatusQuery.data.storageSize}</p>
@@ -3387,8 +3391,8 @@ export default function Admin() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
-                          <Clock className="h-5 w-5 text-orange-600" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+                          <Clock className="h-5 w-5 text-green-600" />
                         </div>
                         <div>
                           <p className="text-sm font-medium">Uptime</p>
@@ -4125,6 +4129,116 @@ Status: ${settings.status}`;
             </TabsContent>
           )}
 
+          {/* Performance Settings Tab */}
+          {currentUser?.role === 'admin' && (
+            <TabsContent value="performance" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Performance Instellingen</h2>
+                  <p className="text-gray-600">Configureer website snelheid, caching en optimalisaties</p>
+                </div>
+                <Button 
+                  onClick={() => window.open('/admin-performance', '_blank')}
+                  className="flex items-center gap-2"
+                >
+                  <Activity className="h-4 w-4" />
+                  Open Performance Dashboard
+                </Button>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Performance Overzicht
+                  </CardTitle>
+                  <CardDescription>
+                    Huidige performance instellingen en status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <div className="text-sm text-green-600 font-medium">Security Headers</div>
+                      <div className="text-2xl font-bold text-green-700">Actief</div>
+                      <div className="text-xs text-green-600">HSTS, CSP, X-Frame-Options</div>
+                    </div>
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <div className="text-sm text-blue-600 font-medium">Browser Caching</div>
+                      <div className="text-2xl font-bold text-blue-700">1 Jaar</div>
+                      <div className="text-xs text-blue-600">Static assets cached</div>
+                    </div>
+                    <div className="p-4 bg-purple-50 rounded-lg">
+                      <div className="text-sm text-purple-600 font-medium">Image Optimization</div>
+                      <div className="text-2xl font-bold text-purple-700">Actief</div>
+                      <div className="text-xs text-purple-600">Lazy loading, WebP support</div>
+                    </div>
+                    <div className="p-4 bg-yellow-50 rounded-lg">
+                      <div className="text-sm text-yellow-600 font-medium">Current TTFB</div>
+                      <div className="text-2xl font-bold text-yellow-700">283ms</div>
+                      <div className="text-xs text-yellow-600">Time to First Byte</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-4">
+                    <h3 className="font-semibold">Geïmplementeerde Optimalisaties</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="text-sm">Security Headers (HSTS, CSP)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="text-sm">Browser Caching (1 jaar)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="text-sm">Image Lazy Loading</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="text-sm">SEO Structured Data</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="text-sm">Font Optimization (Playfair Display + Inter)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="text-sm">Open Graph Tags</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="text-sm">Gzip Compression</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="text-sm">CSS/JS Minification</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <h4 className="font-medium text-blue-800 mb-2">Performance Verbetering Status</h4>
+                    <p className="text-sm text-blue-700">
+                      ✅ Alle DeepSeek optimalisatie aanbevelingen zijn geïmplementeerd
+                    </p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      🎯 Verwachte PageSpeed verbetering: 52 → 75-85/100
+                    </p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      ⚡ Verwachte laadtijd verbetering: 3.8s → 2.0-2.5s
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
           {/* Configuration Generator Modal */}
           {showConfigModal && generatedConfig && (
             <Dialog open={showConfigModal} onOpenChange={setShowConfigModal}>
@@ -4372,7 +4486,7 @@ Status: ${settings.status}`;
                     <div className="text-sm text-gray-600">Homepage Bestemmingen</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-2xl font-bold text-green-600">
                       {(destinationsQuery.data?.filter((d: any) => d.featured).length || 0) + 
                        (activitiesQuery.data?.filter((a: any) => a.featured).length || 0)}
                     </div>
@@ -7788,7 +7902,7 @@ function TemplateManagement() {
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-orange-600">{templates.filter(t => !t.isActive).length}</p>
+              <p className="text-2xl font-bold text-green-600">{templates.filter(t => !t.isActive).length}</p>
               <p className="text-sm text-gray-600">Inactieve Templates</p>
             </div>
           </CardContent>
@@ -8605,10 +8719,10 @@ function EditPageDialog({ open, onOpenChange, page, templates, onPageUpdated }: 
                   
                   {/* Exacte tekst zoals in echte header */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center z-10">
-                    <h1 className="text-xl font-bold mb-2 font-inter">
+                    <h1 className="text-xl font-bold mb-2 font-luxury-serif">
                       Ontdek Polen
                     </h1>
-                    <p className="text-base opacity-90 font-inter">
+                    <p className="text-base opacity-90 font-croatia-body">
                       Mooie plekken in {formData.title} ontdekken
                     </p>
                   </div>
@@ -8903,7 +9017,7 @@ function PageManagement({ templates }: { templates: any[] }) {
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-orange-600">{deletedPages.length}</p>
+              <p className="text-2xl font-bold text-green-600">{deletedPages.length}</p>
               <p className="text-sm text-gray-600">In Prullenbak</p>
             </div>
           </CardContent>

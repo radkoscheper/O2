@@ -2,16 +2,23 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db, pool } from "./db";
-import { sql } from "drizzle-orm";
+import { sql, eq, desc, gte } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { z } from "zod";
-import { insertUserSchema, updateUserSchema, changePasswordSchema, resetPasswordSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  updateUserSchema, 
+  changePasswordSchema, 
+  resetPasswordSchema,
+  performanceSettings,
+  performanceMetrics
+} from "@shared/schema";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { CloudinaryService, type CloudinaryUploadOptions } from "./cloudinary";
+import { cloudinaryService } from "./cloudinary";
 
 declare module "express-session" {
   interface SessionData {
@@ -30,43 +37,13 @@ const requireAuth = (req: any, res: any, next: any) => {
 };
 
 // Configure multer for file uploads
-// Note: On Vercel (serverless), file system is read-only
-// This will work in development but not in production
 const uploadsDir = path.join(process.cwd(), 'client', 'public', 'images');
-const isProduction = process.env.NODE_ENV === 'production';
-const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
-
-if (!isProduction && !isServerless && !fs.existsSync(uploadsDir)) {
+if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // Unified upload configuration for all file types
 const createUploadConfig = (uploadType: 'image' | 'favicon') => {
-  return multer({
-    storage: multer.memoryStorage(), // Use memory storage for Cloudinary uploads
-    limits: {
-      fileSize: uploadType === 'favicon' ? 1024 * 1024 : 10 * 1024 * 1024 // 1MB voor favicon, 10MB voor images
-    },
-    fileFilter: function (req, file, cb) {
-      if (uploadType === 'favicon') {
-        if (file.mimetype === 'image/x-icon' || file.originalname.toLowerCase().endsWith('.ico')) {
-          cb(null, true);
-        } else {
-          cb(new Error('Only .ico files are allowed for favicon upload'));
-        }
-      } else {
-        if (file.mimetype.startsWith('image/')) {
-          cb(null, true);
-        } else {
-          cb(null, false);
-        }
-      }
-    }
-  });
-};
-
-// Legacy local disk storage configuration (for development fallback)
-const createLegacyUploadConfig = (uploadType: 'image' | 'favicon') => {
   return multer({
     storage: multer.diskStorage({
       destination: function (req, file, cb) {
@@ -150,36 +127,8 @@ const createLegacyUploadConfig = (uploadType: 'image' | 'favicon') => {
 
 const upload = createUploadConfig('image');
 const faviconUpload = createUploadConfig('favicon');
-const legacyUpload = createLegacyUploadConfig('image');
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Basic health check endpoint for deployment monitoring (no auth required)
-  app.get("/health", async (req, res) => {
-    try {
-      // Test database connection
-      await db.execute(sql`SELECT 1`);
-      
-      res.status(200).json({
-        status: "ok",
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || "unknown",
-        uptime: Math.floor(process.uptime()),
-        database: "connected"
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: "error",
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || "unknown",
-        database: "disconnected",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  // Note: Root route "/" removed to allow Vite to serve the React frontend
-  // API status is available via /health endpoint instead
-
   // Configure PostgreSQL session store
   const PgStore = connectPgSimple(session);
   
@@ -253,73 +202,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Cloudinary upload endpoint (NEW - primary upload method for production)
-  app.post("/api/upload/cloudinary", requireAuth, (req, res) => {
-    upload.single('file')(req, res, async (err) => {
-      if (err) {
-        console.error("Multer error:", err);
-        return res.status(400).json({
-          success: false,
-          message: err.message || "Upload fout"
-        });
-      }
-
-      const file = req.file;
-      if (!file) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Geen bestand geüpload" 
-        });
-      }
-
-      try {
-        // Parse upload options from request body
-        const { folder = 'ontdek-polen', public_id, transformations } = req.body;
-        
-        // Create upload options
-        const uploadOptions: CloudinaryUploadOptions = {
-          folder,
-          public_id,
-        };
-
-        // Add transformations if provided
-        if (transformations) {
-          try {
-            uploadOptions.transformation = JSON.parse(transformations);
-          } catch (error) {
-            console.warn('Invalid transformations JSON:', transformations);
-          }
-        }
-
-        // Upload to Cloudinary using file buffer
-        const result = await CloudinaryService.uploadImage(file.buffer, uploadOptions);
-        
-        console.log(`Cloudinary upload successful: ${result.public_id} -> ${result.secure_url}`);
-        
-        res.json({
-          success: true,
-          message: "Afbeelding succesvol geüpload naar Cloudinary",
-          data: result
-        });
-      } catch (error) {
-        console.error("Cloudinary upload error:", error);
-        res.status(500).json({ 
-          success: false, 
-          message: "Fout bij uploaden naar Cloudinary: " + (error instanceof Error ? error.message : 'Onbekende fout')
-        });
-      }
-    });
-  });
-
-  // Legacy local upload route (disabled in production/serverless)
+  // Image upload route with error handling
   app.post("/api/upload", requireAuth, (req, res) => {
-    // Check if we're in a serverless environment where uploads are not supported
-    if (isServerless || isProduction) {
-      return res.status(501).json({ 
-        message: "Upload functionaliteit is niet beschikbaar op Vercel (serverless omgeving). Gebruik lokale development of integreer externe opslag zoals Cloudinary.",
-        details: "Vercel serverless functions hebben een read-only bestandssysteem. Zie VERCEL_UPLOAD_ISSUE.md voor oplossingen."
-      });
-    }
     console.log("Upload route hit by user:", req.session.userId);
     
     upload.single('image')(req, res, async (err) => {
@@ -1475,24 +1359,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/header-images/:destination", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser(req.session.userId!);
-      if (!user || !user.canEditContent) {
-        return res.status(403).json({ message: "Geen toestemming om afbeeldingen te bekijken" });
+      if (!user || (!user.canEditContent && !user.canCreateContent)) {
+        return res.status(403).json({ message: "Geen toestemming om header afbeeldingen te bekijken" });
       }
 
       const { destination } = req.params;
+      const headersDir = path.join(process.cwd(), 'client/public/images/headers', destination);
       
-      // Temporary fallback: return empty array to prevent Vercel errors
-      // TODO: Fix CloudinaryService for serverless environment
-      const formattedImages: any[] = [];
+      if (!fs.existsSync(headersDir)) {
+        return res.json([]);
+      }
 
-      res.json(formattedImages);
+      const files = fs.readdirSync(headersDir);
+      const imageFiles = files.filter(file => 
+        /\.(jpg|jpeg|png|webp|gif)$/i.test(file)
+      );
+
+      const headerImages = imageFiles.map(file => ({
+        filename: file,
+        path: `/images/headers/${destination}/${file}`,
+        name: file.replace(/\.[^/.]+$/, "").replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase())
+      }));
+
+      res.json(headerImages);
     } catch (error) {
-      console.error("Error loading header images from Cloudinary:", error);
+      console.error("Error fetching header images:", error);
       res.status(500).json({ message: "Server error" });
     }
   });
-
-
 
   // PAGES ROUTES
 
@@ -1865,28 +1759,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Favicon upload endpoint - specific for .ico files
-  app.post('/api/upload/favicon', requireAuth, (req, res) => {
-    // Check if we're in a serverless environment where uploads are not supported
-    if (isServerless || isProduction) {
-      return res.status(501).json({ 
-        message: "Upload functionaliteit is niet beschikbaar op Vercel (serverless omgeving). Gebruik lokale development of integreer externe opslag zoals Cloudinary.",
-        details: "Vercel serverless functions hebben een read-only bestandssysteem. Zie VERCEL_UPLOAD_ISSUE.md voor oplossingen."
-      });
+  app.post('/api/upload/favicon', requireAuth, faviconUpload.single('favicon'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No favicon file uploaded' });
     }
     
-    // Only proceed with upload if not in serverless environment
-    faviconUpload.single('favicon')(req, res, (err) => {
-      if (err) {
-        return res.status(400).json({ message: err.message });
-      }
-      
-      if (!req.file) {
-        return res.status(400).json({ message: 'No favicon file uploaded' });
-      }
-      
-      const faviconPath = `/${req.file.filename}`;
-      res.json({ faviconPath });
-    });
+    const faviconPath = `/${req.file.filename}`;
+    res.json({ faviconPath });
   });
 
   // Get available favicon files
@@ -1936,7 +1815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Site Images API routes
   // Get site images by type (background, logo, social)
-  app.get('/api/site-images/:imageType', async (req, res) => {
+  app.get('/api/site-images/:imageType', (req, res) => {
     try {
       const imageType = req.params.imageType;
       
@@ -1945,89 +1824,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid image type' });
       }
 
-      // Get Cloudinary images from the appropriate folder
-      const folderPath = `ontdek-polen/${imageType}`;
-      console.log(`Looking for ${imageType} images in Cloudinary folder: ${folderPath}`);
+      // Map imageType to actual folder names (handle plural forms)
+      const folderMap = {
+        background: 'backgrounds',
+        logo: 'logo', 
+        social: 'social'
+      };
+      const actualFolder = folderMap[imageType as keyof typeof folderMap];
+      const imagesDir = path.join(process.cwd(), 'client', 'public', 'images', actualFolder);
       
-      try {
-        // Get Cloudinary images
-        const cloudinaryImages = await CloudinaryService.getFolderImages(folderPath);
-        
-        // Also check local images as fallback/backup
-        const folderMap = {
-          background: 'backgrounds',
-          logo: 'logo', 
-          social: 'social'
-        };
-        const actualFolder = folderMap[imageType as keyof typeof folderMap];
-        const imagesDir = path.join(process.cwd(), 'client', 'public', 'images', actualFolder);
-        
-        let localImages: any[] = [];
-        if (fs.existsSync(imagesDir)) {
-          const files = fs.readdirSync(imagesDir);
-          const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-          localImages = files
-            .filter(file => validExtensions.some(ext => file.toLowerCase().endsWith(ext)))
-            .map(file => {
-              const filePath = path.join(imagesDir, file);
-              const stats = fs.statSync(filePath);
-              return {
-                name: file,
-                path: `/images/${actualFolder}/${file}`,
-                type: path.extname(file).toLowerCase().substring(1),
-                url: `/images/${actualFolder}/${file}`,
-                source: 'local',
-                size: stats.size,
-                lastModified: stats.mtime
-              };
-            });
-        }
-
-        // Combine Cloudinary and local images
-        const allImages = [...cloudinaryImages, ...localImages];
-        
-        console.log(`Found ${cloudinaryImages.length} Cloudinary images and ${localImages.length} local images for ${imageType}`);
-        res.json(allImages);
-      } catch (cloudinaryError) {
-        console.error('Cloudinary error, falling back to local images:', cloudinaryError);
-        
-        // Fallback to local images only
-        const folderMap = {
-          background: 'backgrounds',
-          logo: 'logo', 
-          social: 'social'
-        };
-        const actualFolder = folderMap[imageType as keyof typeof folderMap];
-        const imagesDir = path.join(process.cwd(), 'client', 'public', 'images', actualFolder);
-        
-        if (!fs.existsSync(imagesDir)) {
-          fs.mkdirSync(imagesDir, { recursive: true });
-          return res.json([]);
-        }
-
-        const files = fs.readdirSync(imagesDir);
-        const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-        const images = files
-          .filter(file => validExtensions.some(ext => file.toLowerCase().endsWith(ext)))
-          .map(file => {
-            const filePath = path.join(imagesDir, file);
-            const stats = fs.statSync(filePath);
-            return {
-              name: file,
-              path: `/images/${actualFolder}/${file}`,
-              type: path.extname(file).toLowerCase().substring(1),
-              url: `/images/${actualFolder}/${file}`,
-              source: 'local',
-              size: stats.size,
-              lastModified: stats.mtime
-            };
-          });
-
-        res.json(images);
+      console.log(`Looking for ${imageType} images in: ${imagesDir}`);
+      
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(imagesDir)) {
+        fs.mkdirSync(imagesDir, { recursive: true });
+        return res.json([]);
       }
+
+      const files = fs.readdirSync(imagesDir);
+      const imageFiles = files
+        .filter(file => {
+          const ext = file.toLowerCase();
+          return ext.endsWith('.jpg') || ext.endsWith('.jpeg') || ext.endsWith('.png') || 
+                 ext.endsWith('.gif') || ext.endsWith('.webp') || ext.endsWith('.svg');
+        })
+        .map(file => {
+          const filePath = path.join(imagesDir, file);
+          const stats = fs.statSync(filePath);
+          return {
+            name: file,
+            path: `/images/${actualFolder}/${file}`,
+            size: stats.size,
+            lastModified: stats.mtime
+          };
+        });
+      
+      res.json(imageFiles);
     } catch (error) {
-      console.error(`Error reading ${req.params.imageType} images:`, error);
-      res.status(500).json({ message: 'Error reading images' });
+      console.error('Error reading site image files:', error);
+      res.status(500).json({ message: 'Error reading site image files' });
     }
   });
 
@@ -3473,7 +3308,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         connectionTimeout, 
         idleTimeout, 
         region, 
-        projectId 
+        projectId, 
+        status 
       } = req.body;
 
       // Validate required fields
@@ -3494,7 +3330,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         connectionTimeout: parseInt(connectionTimeout),
         idleTimeout: parseInt(idleTimeout),
         region,
-        projectId
+        projectId,
+        status,
+        updatedAt: new Date()
       });
 
       res.json({
@@ -3530,6 +3368,247 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Database connectie test mislukt",
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // Cloudinary Gallery API routes
+  app.get("/api/admin/cloudinary/images", requireAuth, async (req, res) => {
+    try {
+      const folder = req.query.folder as string || 'ontdek-polen';
+      const maxResults = parseInt(req.query.max_results as string) || 20;
+      
+      const result = await cloudinaryService.listImages(folder, maxResults);
+      res.json(result);
+    } catch (error) {
+      console.error('Cloudinary list error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch images', 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  app.post("/api/admin/cloudinary/delete", requireAuth, async (req, res) => {
+    try {
+      const { public_id } = req.body;
+      
+      if (!public_id) {
+        return res.status(400).json({ error: 'Public ID is required' });
+      }
+      
+      const result = await cloudinaryService.deleteImage(public_id);
+      res.json(result);
+    } catch (error) {
+      console.error('Cloudinary delete error:', error);
+      res.status(500).json({ 
+        error: 'Failed to delete image', 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Alternative API endpoints for frontend compatibility
+  app.get("/api/upload/cloudinary/list/:folder", requireAuth, async (req, res) => {
+    try {
+      const folder = decodeURIComponent(req.params.folder);
+      const maxResults = parseInt(req.query.max_results as string) || 20;
+      
+      const result = await cloudinaryService.listImages(folder, maxResults);
+      res.json({ data: result.resources });
+    } catch (error) {
+      console.error('Cloudinary list error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch images', 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  app.delete("/api/upload/cloudinary/:publicId", requireAuth, async (req, res) => {
+    try {
+      const publicId = decodeURIComponent(req.params.publicId);
+      
+      const result = await cloudinaryService.deleteImage(publicId);
+      res.json(result);
+    } catch (error) {
+      console.error('Cloudinary delete error:', error);
+      res.status(500).json({ 
+        error: 'Failed to delete image', 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // =============================================================================
+  // PERFORMANCE SETTINGS API ROUTES
+  // =============================================================================
+
+  // Get current performance settings
+  app.get("/api/performance-settings", async (req, res) => {
+    try {
+      const [settings] = await db.select().from(performanceSettings).limit(1);
+      
+      if (!settings) {
+        // Create default settings if none exist
+        const [defaultSettings] = await db.insert(performanceSettings).values({
+          createdBy: 1 // Default admin user
+        }).returning();
+        return res.json(defaultSettings);
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching performance settings:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Update performance settings
+  app.patch("/api/performance-settings", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ message: "Alleen admins kunnen performance instellingen wijzigen" });
+      }
+
+      // Get current settings
+      const [currentSettings] = await db.select().from(performanceSettings).limit(1);
+      
+      if (!currentSettings) {
+        // Create new settings if none exist
+        const [newSettings] = await db.insert(performanceSettings).values({
+          ...req.body,
+          createdBy: user.id
+        }).returning();
+        return res.json(newSettings);
+      }
+
+      // Update existing settings
+      const [updatedSettings] = await db
+        .update(performanceSettings)
+        .set({
+          ...req.body,
+          updatedAt: new Date()
+        })
+        .where(eq(performanceSettings.id, currentSettings.id))
+        .returning();
+
+      res.json(updatedSettings);
+    } catch (error) {
+      console.error("Error updating performance settings:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // =============================================================================
+  // PERFORMANCE METRICS API ROUTES
+  // =============================================================================
+
+  // Get performance metrics history
+  app.get("/api/performance-metrics", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const metrics = await db
+        .select()
+        .from(performanceMetrics)
+        .orderBy(desc(performanceMetrics.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching performance metrics:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Record new performance metrics
+  app.post("/api/performance-metrics", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const validation = z.object({
+        url: z.string().url(),
+        pagespeedScore: z.number().min(0).max(100).optional(),
+        loadTime: z.number().min(0).optional(),
+        firstContentfulPaint: z.number().min(0).optional(),
+        largestContentfulPaint: z.number().min(0).optional(),
+        cumulativeLayoutShift: z.string().optional(),
+        firstInputDelay: z.number().min(0).optional(),
+        testType: z.enum(['manual', 'automated', 'scheduled']).default('manual'),
+        userAgent: z.string().optional(),
+        notes: z.string().optional(),
+      }).safeParse(req.body);
+
+      if (!validation.success) {
+        return res.status(400).json({ message: "Invalid input", errors: validation.error.errors });
+      }
+
+      const [metrics] = await db.insert(performanceMetrics).values({
+        ...validation.data,
+        testedBy: user.id
+      }).returning();
+
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error recording performance metrics:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Get performance summary/dashboard data
+  app.get("/api/performance-summary", async (req, res) => {
+    try {
+      // Get latest metrics
+      const [latestMetrics] = await db
+        .select()
+        .from(performanceMetrics)
+        .orderBy(desc(performanceMetrics.createdAt))
+        .limit(1);
+
+      // Get average performance over last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const recentMetrics = await db
+        .select()
+        .from(performanceMetrics)
+        .where(gte(performanceMetrics.createdAt, thirtyDaysAgo));
+
+      // Calculate averages
+      const avgLoadTime = recentMetrics.length > 0 
+        ? Math.round(recentMetrics.reduce((sum, m) => sum + (m.loadTime || 0), 0) / recentMetrics.length)
+        : null;
+
+      const avgPagespeedScore = recentMetrics.length > 0
+        ? Math.round(recentMetrics.reduce((sum, m) => sum + (m.pagespeedScore || 0), 0) / recentMetrics.filter(m => m.pagespeedScore).length)
+        : null;
+
+      // Get current performance settings
+      const [settings] = await db.select().from(performanceSettings).limit(1);
+
+      res.json({
+        latest: latestMetrics,
+        averages: {
+          loadTime: avgLoadTime,
+          pagespeedScore: avgPagespeedScore,
+          totalTests: recentMetrics.length
+        },
+        settings: settings,
+        trends: {
+          improving: latestMetrics && recentMetrics.length > 1 
+            ? (latestMetrics.loadTime || 0) < avgLoadTime
+            : null
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching performance summary:", error);
+      res.status(500).json({ message: "Server error" });
     }
   });
 

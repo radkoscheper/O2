@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Search, Settings, ArrowLeft } from "lucide-react";
+import { Search, Settings, ArrowLeft, MapPin, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import TravelSlider from "@/components/ui/travel-slider";
+import StructuredData from "@/components/ui/seo-structured-data";
+import type { SiteSettings, SearchConfig } from "@shared/schema";
 
 // Activities section component
 function ActivitiesSection({ pageTitle, setSelectedActivityId }: { pageTitle?: string, setSelectedActivityId: (id: string | null) => void }) {
@@ -29,7 +31,7 @@ function ActivitiesSection({ pageTitle, setSelectedActivityId }: { pageTitle?: s
 
   return (
     <section className="py-16 px-5 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold mb-8 font-inter text-gray-900">
+      <h2 className="text-3xl font-bold mb-8 font-playfair text-gray-900">
         Activiteiten in {pageTitle}
       </h2>
       <TravelSlider
@@ -65,17 +67,19 @@ function ActivitiesSection({ pageTitle, setSelectedActivityId }: { pageTitle?: s
                   src={activity.image}
                   alt={activity.alt || activity.name}
                   className="w-full h-40 object-cover"
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => {
                     e.currentTarget.src = '/images/activities/placeholder.svg';
                   }}
                 />
               )}
               <div className="p-4">
-                <h3 className="font-bold font-inter text-gray-900 mb-2">
+                <h3 className="font-bold font-playfair text-gray-900 mb-2">
                   {activity.name}
                 </h3>
                 {activity.description && (
-                  <p className="text-sm text-gray-600 font-inter line-clamp-2">
+                  <p className="text-sm text-gray-600 font-croatia-body line-clamp-2">
                     {activity.description}
                   </p>
                 )}
@@ -124,7 +128,7 @@ export default function Page() {
       case 'destination':
         return 'bg-green-100 text-green-700';
       case 'activity':
-        return 'bg-orange-100 text-orange-700';
+        return 'bg-green-100 text-green-700';
       case 'highlight':
         return 'bg-yellow-100 text-yellow-700';
       case 'guide':
@@ -186,12 +190,12 @@ export default function Page() {
   });
 
   // Fetch site settings for consistent styling
-  const { data: siteSettings } = useQuery({
+  const { data: siteSettings } = useQuery<SiteSettings>({
     queryKey: ["/api/site-settings"],
   });
 
   // Fetch search configuration for destination context
-  const { data: searchConfig } = useQuery({
+  const { data: searchConfig } = useQuery<SearchConfig>({
     queryKey: ["/api/search-config/destination"],
   });
 
@@ -396,9 +400,9 @@ export default function Page() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#f8f6f1" }}>
-      {/* Hero Section - with dynamic header image */}
-      <header 
-        className="relative bg-cover bg-center text-white py-24 px-5 text-center"
+      {/* Hero Section - WebsiteBuilder Design */}
+      <section 
+        className="relative bg-cover bg-center text-white py-24 px-5 text-center min-h-screen flex items-center justify-center"
         style={{
           backgroundImage: `url('${getBackgroundImage()}')`,
           backgroundSize: "cover",
@@ -407,18 +411,15 @@ export default function Page() {
         role="banner"
         aria-label={page?.headerImageAlt || `${page?.title} header afbeelding`}
       >
-        {siteSettings?.headerOverlayEnabled && (
-          <div 
-            className="absolute inset-0 bg-black" 
-            style={{ opacity: (siteSettings?.headerOverlayOpacity || 30) / 100 }}
-          ></div>
-        )}
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <h1 className="text-5xl font-bold mb-3 font-inter">
-            Ontdek Polen
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-navy-dark/40 via-navy-dark/20 to-navy-dark/60"></div>
+        
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl md:text-7xl font-playfair font-bold mb-6 text-white drop-shadow-2xl tracking-wide leading-tight">
+            {page?.title || "Ontdek Polen"}
           </h1>
-          <p className="text-xl mb-8 font-inter">
-            Mooie plekken in {page.title} ontdekken
+          <p className="text-xl md:text-3xl mb-12 text-white/95 font-croatia-body drop-shadow-lg leading-relaxed font-light">
+            Mooie plekken in {page?.title} ontdekken
           </p>
           
           <form 
@@ -431,7 +432,7 @@ export default function Page() {
             <div className="relative inline-block">
               <Input
                 type="text"
-                placeholder={searchConfig?.placeholderText || "Zoek activiteiten..."}
+                placeholder={searchConfig?.placeholderText || "Zoek activiteiten in deze bestemming..."}
                 value={searchQuery}
                 onChange={(e) => {
                   console.log('Destination page search input changed:', e.target.value);
@@ -443,10 +444,10 @@ export default function Page() {
                     console.log('Enter key detected, form should submit');
                   }
                 }}
-                className="py-3 px-5 w-80 max-w-full border-none rounded-lg text-base text-gray-900 font-inter"
+                className="py-5 px-8 w-[28rem] max-w-full border-2 border-white/30 rounded-full text-lg text-navy-dark font-croatia-body shadow-2xl backdrop-blur-md bg-white/95 hover:bg-white hover:border-gold-accent transition-all duration-500 focus:border-gold-accent focus:ring-2 focus:ring-gold-accent/50"
               />
               <Search 
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4 cursor-pointer" 
+                className="absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5 cursor-pointer" 
                 onClick={() => {
                   console.log('Destination page search icon clicked');
                   if (searchQuery.trim()) {
@@ -458,28 +459,28 @@ export default function Page() {
                 }}
               />
             </div>
-            {/* Debug state indicator */}
-            {showSearchResults && (
-              <div className="absolute top-16 left-0 bg-red-500 text-white px-2 py-1 text-xs rounded">
-                Search Active: {isSearching ? 'Searching...' : `${searchResults.length} results`}
-              </div>
-            )}
           </form>
           
-
-          
-          <Button
-            asChild
-            className="mt-4 py-3 px-6 text-base font-inter hover:opacity-90 transition-all duration-200"
-            style={{ backgroundColor: "#2f3e46" }}
-          >
-            <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Terug naar home
-            </Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-6 justify-center mt-12">
+            <Button
+              asChild
+              className="py-5 px-10 text-lg font-playfair font-medium bg-navy-dark hover:bg-navy-medium text-white rounded-full shadow-2xl hover:shadow-navy-dark/25 transition-all duration-500 border-2 border-navy-dark hover:border-navy-medium hover:scale-105"
+            >
+              <Link href="/">
+                <ArrowLeft className="w-5 h-5 mr-3" />
+                Terug naar Home
+              </Link>
+            </Button>
+            <Button
+              className="py-5 px-10 text-lg font-playfair font-medium bg-white/10 backdrop-blur-md hover:bg-white/20 border-2 border-white/40 text-white rounded-full shadow-2xl hover:shadow-white/25 transition-all duration-500 hover:scale-105"
+              variant="outline"
+            >
+              <Calendar className="w-5 h-5 mr-3" />
+              Plan je bezoek
+            </Button>
+          </div>
         </div>
-      </header>
+      </section>
 
       {/* Search Results Overlay */}
       {showSearchResults && (
@@ -606,7 +607,7 @@ export default function Page() {
             // Show selected activity content
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 font-inter">{selectedActivity.name}</h1>
+                <h1 className="text-3xl font-bold text-gray-900 font-playfair">{selectedActivity.name}</h1>
                 <button
                   onClick={() => {
                     setSelectedActivityId(null);
@@ -625,6 +626,8 @@ export default function Page() {
                   src={selectedActivity.image}
                   alt={selectedActivity.alt || selectedActivity.name}
                   className="w-full h-64 object-cover rounded-lg mb-6"
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => {
                     e.currentTarget.src = '/images/activities/placeholder.svg';
                   }}
@@ -647,15 +650,15 @@ export default function Page() {
               </div>
 
               <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4 font-inter">Beschrijving</h2>
-                <p className="text-gray-700 text-lg leading-relaxed font-inter">{selectedActivity.description}</p>
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4 font-playfair">Beschrijving</h2>
+                <p className="text-gray-700 text-lg leading-relaxed font-croatia-body">{selectedActivity.description}</p>
               </div>
 
               {selectedActivity.content && (
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-4 font-inter">Meer informatie</h2>
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-4 font-playfair">Meer informatie</h2>
                   <div 
-                    className="prose prose-lg max-w-none font-inter"
+                    className="prose prose-lg max-w-none font-croatia-body"
                     dangerouslySetInnerHTML={{
                       __html: selectedActivity.content
                         .replace(/\n/g, '<br>')
@@ -685,17 +688,17 @@ export default function Page() {
           ) : (
             // Show original page content
             <div 
-              className="prose prose-lg max-w-none font-inter"
+              className="prose prose-lg max-w-none font-croatia-body"
               dangerouslySetInnerHTML={{
                 __html: page.content
                   .replace(/\n/g, '<br>')
-                  .replace(/# (.*)/g, '<h1 class="text-3xl font-bold mb-6 text-gray-900 font-inter">$1</h1>')
-                  .replace(/## (.*)/g, '<h2 class="text-2xl font-semibold mb-4 text-gray-800 font-inter">$1</h2>')
-                  .replace(/### (.*)/g, '<h3 class="text-xl font-medium mb-3 text-gray-700 font-inter">$1</h3>')
+                  .replace(/# (.*)/g, '<h1 class="text-3xl font-bold mb-6 text-gray-900 font-croatia-body">$1</h1>')
+                  .replace(/## (.*)/g, '<h2 class="text-2xl font-semibold mb-4 text-gray-800 font-croatia-body">$1</h2>')
+                  .replace(/### (.*)/g, '<h3 class="text-xl font-medium mb-3 text-gray-700 font-croatia-body">$1</h3>')
                   .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em class="italic text-gray-700">$1</em>')
                   .replace(/- (.*)/g, '<li class="mb-2 text-gray-700">$1</li>')
-                  .replace(/(<li.*<\/li>)/gs, '<ul class="list-disc list-inside mb-6 space-y-2 ml-4">$1</ul>')
+                  .replace(/(<li.*<\/li>)/g, '<ul class="list-disc list-inside mb-6 space-y-2 ml-4">$1</ul>')
                   .replace(/---/g, '<hr class="my-8 border-gray-200">')
               }}
             />
@@ -706,7 +709,7 @@ export default function Page() {
       {/* Location-specific Featured Activities Section */}
       {locationFeaturedActivities.length > 0 && (
         <section className="py-16 px-5 max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8 font-inter text-gray-900">
+          <h2 className="text-3xl font-bold mb-8 font-playfair text-gray-900">
             Hoogtepunten van {page.title}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -719,11 +722,13 @@ export default function Page() {
                       src={activity.image || '/images/activities/placeholder.svg'}
                       alt={activity.alt || activity.name}
                       className="w-16 h-16 mx-auto mb-3 object-cover rounded-lg"
+                      loading="lazy"
+                      decoding="async"
                       onError={(e) => {
                         e.currentTarget.src = '/images/activities/placeholder.svg';
                       }}
                     />
-                    <h3 className="font-bold font-inter text-gray-900 text-sm">
+                    <h3 className="font-bold font-playfair text-gray-900 text-sm">
                       {activity.name}
                     </h3>
                     <p className="text-xs text-gray-500 mt-1">
@@ -790,10 +795,25 @@ export default function Page() {
           </Button>
         </Link>
         
-        <p className="font-inter">
-          &copy; 2025 {siteSettings?.siteName || "Ontdek Polen"}. Alle rechten voorbehouden.
+        <p className="font-croatia-body">
+          &copy; 2025 {(siteSettings as any)?.siteName || "Ontdek Polen"}. Alle rechten voorbehouden.
         </p>
       </footer>
+      
+      {/* SEO Structured Data */}
+      {page && (
+        <StructuredData 
+          type="destination" 
+          data={{
+            title: page.title,
+            description: page.content,
+            metaDescription: page.metaDescription,
+            slug: slug,
+            headerImage: page.headerImage,
+            updatedAt: page.updatedAt
+          }} 
+        />
+      )}
     </div>
   );
 }

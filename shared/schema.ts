@@ -485,3 +485,113 @@ export const updateMotivationImageLocationSchema = insertMotivationImageLocation
 export type InsertMotivationImageLocation = z.infer<typeof insertMotivationImageLocationSchema>;
 export type UpdateMotivationImageLocation = z.infer<typeof updateMotivationImageLocationSchema>;
 export type SelectMotivationImageLocation = typeof motivationImageLocations.$inferSelect;
+
+// Performance Settings table
+export const performanceSettings = pgTable("performance_settings", {
+  id: serial("id").primaryKey(),
+  // Caching Settings
+  browserCacheDuration: integer("browser_cache_duration").default(31536000).notNull(), // seconds (1 year default)
+  enableStaticCaching: boolean("enable_static_caching").default(true).notNull(),
+  
+  // Image Optimization
+  enableLazyLoading: boolean("enable_lazy_loading").default(true).notNull(),
+  enableWebpConversion: boolean("enable_webp_conversion").default(true).notNull(),
+  imageCompressionLevel: integer("image_compression_level").default(80).notNull(), // 1-100
+  enableResponsiveImages: boolean("enable_responsive_images").default(true).notNull(),
+  
+  // Code Optimization
+  enableMinification: boolean("enable_minification").default(true).notNull(),
+  enableGzipCompression: boolean("enable_gzip_compression").default(true).notNull(),
+  enableCodeSplitting: boolean("enable_code_splitting").default(false).notNull(),
+  
+  // SEO & Analytics
+  enableStructuredData: boolean("enable_structured_data").default(true).notNull(),
+  enableOpenGraph: boolean("enable_open_graph").default(true).notNull(),
+  enableTwitterCards: boolean("enable_twitter_cards").default(true).notNull(),
+  
+  // Performance Monitoring
+  enablePerformanceMonitoring: boolean("enable_performance_monitoring").default(true).notNull(),
+  pagespeedThreshold: integer("pagespeed_threshold").default(80).notNull(), // Alert if below this score
+  loadTimeThreshold: integer("load_time_threshold").default(3000).notNull(), // milliseconds
+  
+  // CDN & External Services
+  enableCdn: boolean("enable_cdn").default(false).notNull(),
+  cdnProvider: varchar("cdn_provider", { length: 50 }).default("vercel"), // vercel, cloudflare, etc.
+  enableExternalFonts: boolean("enable_external_fonts").default(true).notNull(),
+  fontDisplay: varchar("font_display", { length: 20 }).default("swap"), // auto, block, swap, fallback, optional
+  
+  // Security Headers (configurable)
+  enableHsts: boolean("enable_hsts").default(true).notNull(),
+  enableCsp: boolean("enable_csp").default(true).notNull(),
+  enableXFrameOptions: boolean("enable_x_frame_options").default(true).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id),
+});
+
+export const insertPerformanceSettingsSchema = createInsertSchema(performanceSettings).pick({
+  browserCacheDuration: true,
+  enableStaticCaching: true,
+  enableLazyLoading: true,
+  enableWebpConversion: true,
+  imageCompressionLevel: true,
+  enableResponsiveImages: true,
+  enableMinification: true,
+  enableGzipCompression: true,
+  enableCodeSplitting: true,
+  enableStructuredData: true,
+  enableOpenGraph: true,
+  enableTwitterCards: true,
+  enablePerformanceMonitoring: true,
+  pagespeedThreshold: true,
+  loadTimeThreshold: true,
+  enableCdn: true,
+  cdnProvider: true,
+  enableExternalFonts: true,
+  fontDisplay: true,
+  enableHsts: true,
+  enableCsp: true,
+  enableXFrameOptions: true,
+  createdBy: true,
+});
+
+export const updatePerformanceSettingsSchema = insertPerformanceSettingsSchema.partial();
+
+export type InsertPerformanceSettings = z.infer<typeof insertPerformanceSettingsSchema>;
+export type UpdatePerformanceSettings = z.infer<typeof updatePerformanceSettingsSchema>;
+export type PerformanceSettings = typeof performanceSettings.$inferSelect;
+
+// Performance Metrics table for tracking performance over time
+export const performanceMetrics = pgTable("performance_metrics", {
+  id: serial("id").primaryKey(),
+  url: text("url").notNull(),
+  pagespeedScore: integer("pagespeed_score"), // 0-100
+  loadTime: integer("load_time"), // milliseconds
+  firstContentfulPaint: integer("first_contentful_paint"), // milliseconds
+  largestContentfulPaint: integer("largest_contentful_paint"), // milliseconds
+  cumulativeLayoutShift: text("cumulative_layout_shift"), // decimal as string
+  firstInputDelay: integer("first_input_delay"), // milliseconds
+  testType: varchar("test_type", { length: 20 }).default("manual"), // manual, automated, scheduled
+  userAgent: text("user_agent"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  testedBy: integer("tested_by").references(() => users.id),
+});
+
+export const insertPerformanceMetricsSchema = createInsertSchema(performanceMetrics).pick({
+  url: true,
+  pagespeedScore: true,
+  loadTime: true,
+  firstContentfulPaint: true,
+  largestContentfulPaint: true,
+  cumulativeLayoutShift: true,
+  firstInputDelay: true,
+  testType: true,
+  userAgent: true,
+  notes: true,
+  testedBy: true,
+});
+
+export type InsertPerformanceMetrics = z.infer<typeof insertPerformanceMetricsSchema>;
+export type PerformanceMetrics = typeof performanceMetrics.$inferSelect;
