@@ -60,15 +60,17 @@ module.exports = async (req, res) => {
       timestamp: new Date().toISOString()
     };
     
-    res.status(200).json(response);
+    return res.status(200).json(response);
     
   } catch (error) {
-    console.error('AI batch status error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
+    console.error('Database error:', error);
+    
+    return res.status(500).json({
+      error: 'Database connection failed',
       message: error.message,
-      timestamp: new Date().toISOString()
+      status: 'error'
     });
+    
   } finally {
     if (client) {
       client.release();
