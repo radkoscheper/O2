@@ -1342,6 +1342,15 @@ export default function Admin() {
                   <Server className="h-4 w-4" />
                   Deployment & Platform
                 </TabsTrigger>
+              </>
+            )}
+            
+            {/* AI Pre-Processing tab - altijd zichtbaar voor ingelogde gebruikers */}
+            {isAuthenticated && (
+              <>
+                <div className="w-full text-xs font-semibold text-gray-500 px-2 py-1">
+                  AI Tools
+                </div>
                 <TabsTrigger value="ai-preprocessing" className="flex items-center gap-2">
                   <Zap className="h-4 w-4" />
                   AI Pre-Processing
@@ -4163,7 +4172,7 @@ Status: ${settings.status}`;
           )}
 
           {/* AI Pre-Processing Tab Content */}
-          {currentUser?.role === 'admin' && (
+          {isAuthenticated && (
             <TabsContent value="ai-preprocessing" className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
